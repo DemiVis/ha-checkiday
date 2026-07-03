@@ -3,14 +3,14 @@
     "step": {
       "user": {
         "title": "Connect to Checkiday",
-        "description": "This integration fetches today's \"National Day\" from the Checkiday API via APILayer.\n\n**Get a free API key:**\n1. Go to [apilayer.com/marketplace/checkiday-api#pricing](https://apilayer.com/marketplace/checkiday-api#pricing) and create a free APILayer account (no credit card required).\n2. Subscribe to the **Free Plan** (100 requests/month, free for life).\n3. Copy your API key from the APILayer dashboard and paste it below.\n\nThis integration uses 1 request/day, about 30% of your free monthly allowance.\n\nThe Free plan can only fetch \"today\", calculated in the API's own timezone (Central Time) rather than yours - the integration picks a sensible default fetch time to work around this, which you can fine-tune afterwards under **Configure**. See the README for details.\n\nYour key will be tested with one real request before continuing. If it fails, you'll see exactly why.",
+        "description": "This integration fetches today's \"National Day\" from the Checkiday API via APILayer.\n\n**Get a free API key:**\n1. Go to {pricing_link} and create a free APILayer account (no credit card required).\n2. Subscribe to the **Free Plan** (100 requests/month, free for life).\n3. Copy your API key from the APILayer dashboard and paste it below.\n\nThis integration uses 1 request/day, about 30% of your free monthly allowance.\n\nThe Free plan can only fetch \"today\", calculated in the API's own timezone (Central Time) rather than yours - the integration picks a sensible default fetch time to work around this, which you can fine-tune afterwards under **Configure**. See the README for details.\n\nYour key will be tested with one real request before continuing. If it fails, you'll see exactly why.",
         "data": {
           "api_key": "APILayer API key"
         }
       },
       "reauth_confirm": {
         "title": "Reconnect to Checkiday",
-        "description": "Your Checkiday API key stopped working. Enter a new key from your APILayer dashboard ([apilayer.com/marketplace/checkiday-api#pricing](https://apilayer.com/marketplace/checkiday-api#pricing)). It will be tested once before continuing.",
+        "description": "Your Checkiday API key stopped working. Enter a new key from your APILayer dashboard ({pricing_link}). It will be tested once before continuing.",
         "data": {
           "api_key": "APILayer API key"
         }

@@ -38,6 +38,12 @@ _API_KEY_SCHEMA = vol.Schema(
     }
 )
 
+# hassfest forbids literal URLs inside strings.json/translations values, so
+# the link text lives here and is injected via description_placeholders at
+# runtime instead (strings.json references it as `{pricing_link}`).
+_PRICING_URL = "https://apilayer.com/marketplace/checkiday-api#pricing"
+_PRICING_LINK_MARKDOWN = f"[apilayer.com/marketplace/checkiday-api#pricing]({_PRICING_URL})"
+
 
 async def _async_test_api_key(hass: HomeAssistant, api_key: str) -> None:
     """Validate an API key with one real request. Raises on any failure."""
@@ -153,7 +159,7 @@ class CheckidayConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=_API_KEY_SCHEMA,
             errors=errors,
-            description_placeholders=placeholders,
+            description_placeholders={"pricing_link": _PRICING_LINK_MARKDOWN, **placeholders},
         )
 
     async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
@@ -183,7 +189,7 @@ class CheckidayConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="reauth_confirm",
             data_schema=_API_KEY_SCHEMA,
             errors=errors,
-            description_placeholders=placeholders,
+            description_placeholders={"pricing_link": _PRICING_LINK_MARKDOWN, **placeholders},
         )
 
     @staticmethod
