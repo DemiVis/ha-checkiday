@@ -124,6 +124,10 @@ page](https://apilayer.com/marketplace/checkiday-api#pricing).
 - Use of the Checkiday API is subject to [their terms](https://apilayer.com/marketplace/checkiday-api)
   — this integration is meant for personal, non-commercial, daily
   home-automation use, in line with the free tier it's built around.
+- The icon at `custom_components/checkiday/brand/` is an original, generic
+  calendar/star mark created for this project — it is **not** Checkiday's
+  logo or brand imagery, specifically to avoid implying this is an official
+  or endorsed integration.
 
 ## Contributing
 
