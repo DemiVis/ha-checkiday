@@ -1,8 +1,9 @@
 """The Checkiday National Day integration.
 
-Fetches today's (and optionally tomorrow's) "National Day(s)" from the
-Checkiday API (https://apilayer.com/marketplace/checkiday-api) once per day,
-at a user-configurable local time, and exposes them as sensors.
+Fetches today's "National Day(s)" from the Checkiday API
+(https://apilayer.com/marketplace/checkiday-api) once per day, at a
+user-configurable local time, and exposes them as sensors. The Free API
+plan only supports fetching "today" (see api.py's module docstring).
 
 Unofficial, community integration — not affiliated with Checkiday, Westy92
 LLC, or APILayer. See README.md for details.
@@ -20,11 +21,9 @@ from homeassistant.helpers.event import async_track_time_change
 
 from .api import CheckidayApiClient
 from .const import (
-    CONF_INCLUDE_TOMORROW,
     CONF_UPDATE_TIME,
     DATA_COORDINATOR,
     DATA_UNSUB_SCHEDULE,
-    DEFAULT_INCLUDE_TOMORROW,
     DEFAULT_UPDATE_TIME,
     DOMAIN,
     PLATFORMS,
@@ -39,13 +38,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     session = async_get_clientsession(hass)
     client = CheckidayApiClient(session, entry.data[CONF_API_KEY])
 
-    include_tomorrow = entry.options.get(CONF_INCLUDE_TOMORROW, DEFAULT_INCLUDE_TOMORROW)
-
     coordinator = CheckidayUpdateCoordinator(
         hass=hass,
         config_entry=entry,
         client=client,
-        include_tomorrow=include_tomorrow,
     )
 
     # Raises ConfigEntryNotReady / ConfigEntryAuthFailed as appropriate,
@@ -86,8 +82,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload the config entry when its options change.
 
-    This is the simplest correct way to pick up a new update_time (which
-    needs the daily schedule re-registered) or include_tomorrow value.
+    This is the simplest correct way to pick up a new update_time, since it
+    needs the daily schedule re-registered.
     """
     await hass.config_entries.async_reload(entry.entry_id)
 
