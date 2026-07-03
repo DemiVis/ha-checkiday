@@ -80,15 +80,24 @@ without losing your other settings.
 | `sensor.checkiday_today` | State = the first National Day for today. Attributes include the full `events` list (`id`, `name`, `url` for every event today), `event_count`, `all_names`, and any multi-day events starting/ongoing. |
 | `sensor.checkiday_api_requests_remaining` | Diagnostic sensor showing your remaining monthly API requests (from the API's rate-limit headers). |
 
-### Iterating through multiple events
+There's also an `all_names` sensor (all of today's event names joined into
+one string) that's disabled by default — it's there under **Settings →
+Devices & Services → Entities** if you'd rather enable a ready-made entity
+than build the template below yourself, but the dashboard card is the
+better way to see everything at a glance.
 
-Most dates have several observances. Use the `events` attribute (a list of
-`{id, name, url}`) in a template to iterate:
+### Seeing all of today's events without digging through attributes
+
+The entity's "details" popup only shows one value at a time, so to see the
+full list at a glance, add a **Markdown card** to your dashboard:
 
 ```yaml
-{% for event in state_attr('sensor.checkiday_today', 'events') %}
-- {{ event.name }}
-{% endfor %}
+type: markdown
+content: |
+  {% for event in state_attr('sensor.checkiday_today', 'events') %}
+  - [{{ event.name }}]({{ event.url }})
+  {% endfor %}
+title: Today's National Days
 ```
 
 For a rotating/cycling dashboard card or an ESPHome display, consider a

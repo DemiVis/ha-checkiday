@@ -46,6 +46,9 @@
       "national_day": {
         "name": "Today"
       },
+      "all_names": {
+        "name": "All names"
+      },
       "api_requests_remaining": {
         "name": "API requests remaining"
       }

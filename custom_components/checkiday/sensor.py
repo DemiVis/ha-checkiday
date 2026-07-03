@@ -29,6 +29,7 @@ async def async_setup_entry(
     async_add_entities(
         [
             CheckidayNationalDaySensor(coordinator, entry),
+            CheckidayAllNamesSensor(coordinator, entry),
             CheckidayRateLimitSensor(coordinator, entry),
         ]
     )
@@ -94,6 +95,52 @@ class CheckidayNationalDaySensor(CoordinatorEntity[CheckidayUpdateCoordinator], 
             "multiday_starting": [asdict(e) for e in result.multiday_starting],
             "multiday_ongoing": [asdict(e) for e in result.multiday_ongoing],
         }
+
+
+class CheckidayAllNamesSensor(CoordinatorEntity[CheckidayUpdateCoordinator], SensorEntity):
+    """Optional convenience sensor: all of today's event names in one string.
+
+    Disabled by default. A long comma-joined string is a clunky sensor
+    state, and the primary `national_day` sensor's `events`/`all_names`
+    attributes already carry this data for templates and dashboards - this
+    entity only exists for anyone who'd rather enable a ready-made entity
+    than write a template sensor themselves. Not mentioned as a
+    recommendation anywhere; it's just here if someone wants it.
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "all_names"
+    _attr_icon = "mdi:calendar-text"
+    _attr_attribution = ATTRIBUTION
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: CheckidayUpdateCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_all_names"
+        self._attr_device_info = _device_info(entry)
+
+    @property
+    def native_value(self) -> str | None:
+        """Return today's event names joined into one string."""
+        data: CheckidayData | None = self.coordinator.data
+        if data is None or not data.today.events:
+            return None
+        joined = ", ".join(e.name for e in data.today.events)
+        # Sensor states are capped at 255 chars; truncate defensively so a
+        # heavy day doesn't get silently dropped/warned about by the
+        # recorder.
+        if len(joined) > 255:
+            joined = joined[:252] + "..."
+        return joined
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the event count, for context if the state got truncated."""
+        data: CheckidayData | None = self.coordinator.data
+        if data is None:
+            return {}
+        return {"event_count": len(data.today.events)}
 
 
 class CheckidayRateLimitSensor(CoordinatorEntity[CheckidayUpdateCoordinator], SensorEntity):
