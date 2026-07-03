@@ -1,13 +1,19 @@
 """Minimal async client for the Checkiday API (served via APILayer).
 
-Reference: https://apilayer.com/marketplace/checkiday-api#documentation
+Reference: https://marketplace.apilayer.com/checkiday-api/tabs/api_docs
 
-This client intentionally implements only the `events` endpoint, which is
-all this integration needs. It talks to:
+This client intentionally implements only the free-tier-safe shape of the
+`events` endpoint:
 
-    GET https://api.apilayer.com/checkiday/events
-        ?date=<M/D/YYYY>&timezone=<IANA tz>&adult=false
+    GET https://api.apilayer.com/checkiday/events?adult=false
     Header: apikey: <your key>
+
+Per APILayer's own API reference, the `date` and `timezone` query parameters
+on `/events` are gated behind Pro and Enterprise plans respectively (and the
+`/event` and `/search` endpoints are Pro & Enterprise only in their
+entirety). This integration is built around the Free plan, so it never
+sends `date` or `timezone` - the API always resolves "today" using its own
+fixed default timezone (America/Chicago; see const.API_TIMEZONE).
 
 The API returns the caller's remaining monthly quota in the
 `X-RateLimit-Remaining-Month` / `X-RateLimit-Limit-Month` response headers.
@@ -83,24 +89,14 @@ class CheckidayApiClient:
         self._session = session
         self._api_key = api_key
 
-    async def async_get_events(
-        self,
-        date: str | None = None,
-        timezone: str | None = None,
-        adult: bool = False,
-    ) -> CheckidayEventsResult:
-        """Fetch the events for a given date.
+    async def async_get_today(self, adult: bool = False) -> CheckidayEventsResult:
+        """Fetch today's events, as resolved by the API's own default timezone.
 
-        `date` should be formatted as `M/D/YYYY` (e.g. `5/5/2025`), matching
-        what the Checkiday API expects. If omitted, the API defaults to
-        "today" in the given (or its default) timezone.
+        Deliberately takes no `date` or `timezone` arguments - both require a
+        paid APILayer plan (see module docstring). This is the only request
+        shape guaranteed to work on the Free plan.
         """
         params: dict[str, str] = {"adult": "true" if adult else "false"}
-        if date:
-            params["date"] = date
-        if timezone:
-            params["timezone"] = timezone
-
         return await self._async_request(params)
 
     async def _async_request(self, params: dict[str, str]) -> CheckidayEventsResult:

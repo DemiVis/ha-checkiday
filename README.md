@@ -3,9 +3,9 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A Home Assistant custom integration that surfaces today's (and, optionally,
-tomorrow's) ["National Day(s)"](https://checkiday.com) — e.g. *National Pizza
-Day*, *International Cat Day* — as sensors, using the
+A Home Assistant custom integration that surfaces today's
+["National Day"](https://checkiday.com) — e.g. *National Pizza Day*,
+*International Cat Day* — as a sensor, using the
 [Checkiday API](https://apilayer.com/marketplace/checkiday-api), available via
 APILayer.
 
@@ -19,13 +19,14 @@ APILayer.
 
 ## Features
 
-- Fetches **today's** National Day(s) from Checkiday, plus **tomorrow's** if
-  you want to preview them (e.g. for a display refreshed at night).
+- Fetches **today's** National Day(s) from Checkiday.
 - Most calendar dates have *multiple* observances — every event is exposed
   in a structured attribute list so a dashboard, template, or ESPHome display
   can iterate through all of them, not just the first one.
 - Runs on your own schedule: fetches once per day at a **local time you
-  choose** (default: midnight), instead of constant polling.
+  choose**, instead of constant polling. The default time is chosen
+  automatically to work around a Free-plan limitation — see
+  [Timezone limitations](#timezone-limitations) below.
 - A built-in "API requests remaining" sensor so you can keep an eye on your
   monthly quota.
 - Guided setup: paste your API key and the integration tests it immediately.
@@ -63,11 +64,10 @@ APILayer.
    integration is set up — if it fails, you'll see the API's actual error
    response so you can tell what went wrong (bad key, no active
    subscription, quota exhausted, etc.).
-3. After setup, click **Configure** on the integration to adjust:
-   - **Daily update time** — the local time each day the integration fetches
-     new data (default `00:00:00`).
-   - **Also fetch tomorrow's National Day(s)** — on by default; turn this off
-     to roughly halve your monthly API usage.
+3. After setup, click **Configure** on the integration to adjust the
+   **daily update time** — the local time each day the integration fetches
+   new data. See [Timezone limitations](#timezone-limitations) for why the
+   default isn't always `00:00:00`.
 
 If your API key later stops working (revoked, quota exhausted long-term,
 etc.), Home Assistant will prompt you to re-authenticate with a new key
@@ -78,7 +78,6 @@ without losing your other settings.
 | Entity | Description |
 | --- | --- |
 | `sensor.checkiday_today` | State = the first National Day for today. Attributes include the full `events` list (`id`, `name`, `url` for every event today), `event_count`, `all_names`, and any multi-day events starting/ongoing. |
-| `sensor.checkiday_tomorrow` | Same as above, for tomorrow. Only populated if "Also fetch tomorrow's National Day(s)" is enabled. |
 | `sensor.checkiday_api_requests_remaining` | Diagnostic sensor showing your remaining monthly API requests (from the API's rate-limit headers). |
 
 ### Iterating through multiple events
@@ -99,20 +98,52 @@ the current index's name to a helper `input_text`, which is easy for
 ESPHome's `homeassistant.text_sensor` to consume (ESPHome can read entity
 *state*, but not arbitrary attributes, directly).
 
+## Timezone limitations
+
+The Checkiday API's Free plan is more restrictive than the client library
+examples suggest. Per
+[APILayer's own API reference](https://marketplace.apilayer.com/checkiday-api/tabs/api_docs),
+the `events` endpoint's `date` parameter requires a **Pro or Enterprise**
+plan, and its `timezone` parameter requires **Enterprise**. On the Free
+plan, the only request this integration can make is the bare endpoint with
+no date or timezone — which means:
+
+- **There's no lookup.** Asking for a specific date requires a
+  paid plan, so this integration only ever fetches today.
+- **"Today" is always calculated in the API's own timezone (America/Chicago,
+  Central Time)** — not whatever timezone your Home Assistant instance is
+  set to, since overriding that also requires Enterprise.
+
+To make the second point as painless as possible, the integration doesn't
+just default to your local midnight. Instead, it computes the local clock
+time that corresponds to Central Time's midnight, and uses that as the
+default daily update time — so that by the time it fetches, the API's
+calendar day has already rolled over to match yours. Concretely, for US
+timezones:
+
+| Your timezone | Default update time |
+| --- | --- |
+| Pacific / Mountain | `00:00:00` (Central has already rolled over) |
+| Central | `00:00:00` |
+| Eastern | `01:00:00` (waits 1 hour for Central to catch up) |
+
+For timezones far from Central Time — especially outside the Americas —
+this can produce a much later default update time, or in extreme cases
+there may be no local time at which both calendars agree on "today" for a
+full 24 hours. If you're outside the US, check the computed default under
+**Configure** after setup, and adjust it if needed. Regardless of the
+update time chosen, there will always be a window around your local
+midnight where the "Today" sensor is technically still showing the
+*previous* Central-Time day.
+
 ## API usage
 
 Checkiday's free APILayer plan allows **100 requests/month**. This
-integration is designed around that constraint:
-
-- **2 requests/day** (today + tomorrow) ≈ **60 requests/month**, about 60% of
-  the free allowance.
-- **1 request/day** (today only — disable "tomorrow" in options) ≈ **30
-  requests/month**, about 30% of the free allowance.
-
-That leaves headroom for the occasional Home Assistant restart or manual
-refresh. If you need more than the free tier offers, APILayer sells paid
-plans with a higher monthly quota — see the [pricing
-page](https://apilayer.com/marketplace/checkiday-api#pricing).
+integration makes **1 request/day** ≈ **30 requests/month**, about 30% of
+the free allowance — leaving headroom for the occasional Home Assistant
+restart or manual reload. If you need more than the free tier offers,
+APILayer sells paid plans with a higher monthly quota — see the
+[pricing page](https://apilayer.com/marketplace/checkiday-api#pricing).
 
 ## Disclaimer & fair use
 

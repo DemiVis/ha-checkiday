@@ -13,19 +13,26 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 API_BASE_URL = "https://api.apilayer.com/checkiday/"
 API_TIMEOUT = 10  # seconds
 
+# The Checkiday API always calculates "today" in this fixed timezone. Per
+# APILayer's own API reference (marketplace.apilayer.com/checkiday-api),
+# the `date` and `timezone` request parameters are gated behind Pro and
+# Enterprise plans respectively, so the Free plan this integration is built
+# around can only ever ask for the bare, param-less "today" - which the API
+# resolves using this timezone, not the caller's.
+API_TIMEZONE = "America/Chicago"
+
 # The Checkiday free tier (via APILayer) allows this many requests/month.
-# This integration makes at most 2 requests/day (today + tomorrow), i.e.
-# roughly 60 requests/month if "include tomorrow" is enabled, or roughly 30
-# requests/month if it's disabled.
+# This integration makes 1 request/day, i.e. roughly 30 requests/month.
 FREE_TIER_MONTHLY_LIMIT = 100
 
 # -- Config entry data / options keys ----------------------------------------
 
 CONF_UPDATE_TIME = "update_time"
-CONF_INCLUDE_TOMORROW = "include_tomorrow"
 
+# Static fallback only - used if a per-timezone default can't be computed
+# (see config_flow.async_compute_default_update_time). Prefer that smart
+# default wherever possible; this exists purely as a last resort.
 DEFAULT_UPDATE_TIME = "00:00:00"
-DEFAULT_INCLUDE_TOMORROW = True
 
 # -- hass.data storage keys --------------------------------------------------
 
