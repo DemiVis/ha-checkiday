@@ -6,11 +6,11 @@ from dataclasses import dataclass
 from datetime import date as date_type, timedelta
 import logging
 
-import homeassistant.util.dt as dt_util
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+import homeassistant.util.dt as dt_util
 
 from .api import (
     CheckidayApiClient,

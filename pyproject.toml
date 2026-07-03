@@ -1,3 +1,21 @@
+[project]
+name = "ha-checkiday"
+version = "0.1.0"
+description = "Checkiday National Day integration for Home Assistant (unofficial)"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+
+# This repo is a Home Assistant custom_components tree, not a publishable
+# Python package - don't try to build/install it, just use this file to
+# pin dev tooling (ruff) for `uv sync` / `uv run`.
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "ruff",
+]
+
 [tool.ruff]
 target-version = "py312"
 line-length = 100

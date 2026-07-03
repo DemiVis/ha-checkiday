@@ -6,8 +6,6 @@ import hashlib
 import logging
 from typing import Any
 
-import voluptuous as vol
-
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -18,6 +16,7 @@ from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+import voluptuous as vol
 
 from .api import (
     CheckidayApiClient,
@@ -95,9 +94,7 @@ class CheckidayConfigFlow(ConfigFlow, domain=DOMAIN):
         """Initialize the flow."""
         self._reauth_entry: ConfigEntry | None = None
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the initial setup step: collect and test an API key."""
         errors: dict[str, str] = {}
         placeholders: dict[str, str] = {}
@@ -165,9 +162,7 @@ class CheckidayConfigFlow(ConfigFlow, domain=DOMAIN):
 class CheckidayOptionsFlowHandler(OptionsFlow):
     """Handle Checkiday options: daily update time and tomorrow toggle."""
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manage the options."""
         if user_input is not None:
             return self.async_create_entry(data=user_input)

@@ -32,21 +32,6 @@ APILayer.
   If it doesn't work, you'll see exactly why (the raw API response) instead
   of a vague error.
 
-## Why this exists / API usage
-
-Checkiday's free APILayer plan allows **100 requests/month**. This
-integration is designed around that constraint:
-
-- **2 requests/day** (today + tomorrow) ≈ **60 requests/month**, about 60% of
-  the free allowance.
-- **1 request/day** (today only — disable "tomorrow" in options) ≈ **30
-  requests/month**, about 30% of the free allowance.
-
-That leaves headroom for the occasional Home Assistant restart or manual
-refresh. If you need more than the free tier offers, APILayer sells paid
-plans with a higher monthly quota — see the [pricing
-page](https://apilayer.com/marketplace/checkiday-api#pricing).
-
 ## Installation
 
 ### Via HACS (recommended)
@@ -114,6 +99,21 @@ the current index's name to a helper `input_text`, which is easy for
 ESPHome's `homeassistant.text_sensor` to consume (ESPHome can read entity
 *state*, but not arbitrary attributes, directly).
 
+## API usage
+
+Checkiday's free APILayer plan allows **100 requests/month**. This
+integration is designed around that constraint:
+
+- **2 requests/day** (today + tomorrow) ≈ **60 requests/month**, about 60% of
+  the free allowance.
+- **1 request/day** (today only — disable "tomorrow" in options) ≈ **30
+  requests/month**, about 30% of the free allowance.
+
+That leaves headroom for the occasional Home Assistant restart or manual
+refresh. If you need more than the free tier offers, APILayer sells paid
+plans with a higher monthly quota — see the [pricing
+page](https://apilayer.com/marketplace/checkiday-api#pricing).
+
 ## Disclaimer & fair use
 
 - This integration is provided **as-is**, under the MIT License (see
@@ -124,6 +124,10 @@ ESPHome's `homeassistant.text_sensor` to consume (ESPHome can read entity
 - Use of the Checkiday API is subject to [their terms](https://apilayer.com/marketplace/checkiday-api)
   — this integration is meant for personal, non-commercial, daily
   home-automation use, in line with the free tier it's built around.
+- The icon at `custom_components/checkiday/brand/` is an original, generic
+  calendar/star mark created for this project — it is **not** Checkiday's
+  logo or brand imagery, specifically to avoid implying this is an official
+  or endorsed integration.
 
 ## Contributing
 
