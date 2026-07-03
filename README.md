@@ -94,7 +94,7 @@ full list at a glance, add a **Markdown card** to your dashboard:
 ```yaml
 type: markdown
 content: |
-  {% for event in state_attr('sensor.checkiday_today', 'events') %}
+  {% for event in state_attr('sensor.checkiday_national_day_today', 'events') %}
   - [{{ event.name }}]({{ event.url }})
   {% endfor %}
 title: Today's National Days
