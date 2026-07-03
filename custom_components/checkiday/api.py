@@ -112,27 +112,20 @@ class CheckidayApiClient:
                 response = await self._session.get(url, params=params, headers=headers)
                 text = await response.text()
         except TimeoutError as err:
-            raise CheckidayConnectionError(
-                "Timed out contacting the Checkiday API"
-            ) from err
+            raise CheckidayConnectionError("Timed out contacting the Checkiday API") from err
         except aiohttp.ClientError as err:
-            raise CheckidayConnectionError(
-                f"Error contacting the Checkiday API: {err}"
-            ) from err
+            raise CheckidayConnectionError(f"Error contacting the Checkiday API: {err}") from err
 
         try:
             payload: dict[str, Any] = json.loads(text) if text else {}
         except ValueError as err:
             raise CheckidayApiError(
-                f"Received an unreadable response (HTTP {response.status}): "
-                f"{text[:500]}"
+                f"Received an unreadable response (HTTP {response.status}): {text[:500]}"
             ) from err
 
         if response.status in (401, 403):
             message = _extract_error_message(payload, text)
-            raise CheckidayAuthError(
-                f"HTTP {response.status}: {message}"
-            )
+            raise CheckidayAuthError(f"HTTP {response.status}: {message}")
         if response.status == 429:
             message = _extract_error_message(payload, text)
             raise CheckidayRateLimitError(
