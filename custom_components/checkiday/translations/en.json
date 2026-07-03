@@ -3,14 +3,14 @@
     "step": {
       "user": {
         "title": "Connect to Checkiday",
-        "description": "This integration fetches the current \"National Day\" (and, optionally, tomorrow's) from the Checkiday API via APILayer.\n\n**Get a free API key:**\n1. Go to apilayer.com/marketplace/checkiday-api#pricing and create a free APILayer account (no credit card required).\n2. Subscribe to the **Free Plan** (100 requests/month, free for life).\n3. Copy your API key from the APILayer dashboard and paste it below.\n\nThis integration uses at most 2 requests/day (today + tomorrow) — about 60% of your free monthly allowance. You can disable the \"tomorrow\" lookup afterwards to roughly halve that usage.\n\nYour key will be tested with one real request before continuing. If it fails, you'll see exactly why.",
+        "description": "This integration fetches today's \"National Day\" from the Checkiday API via APILayer.\n\n**Get a free API key:**\n1. Go to {pricing_link} and create a free APILayer account (no credit card required).\n2. Subscribe to the **Free Plan** (100 requests/month, free for life).\n3. Copy your API key from the APILayer dashboard and paste it below.\n\nThis integration uses 1 request/day, about 30% of your free monthly allowance.\n\nThe Free plan can only fetch \"today\", calculated in the API's own timezone (Central Time) rather than yours - the integration picks a sensible default fetch time to work around this, which you can fine-tune afterwards under **Configure**. See the README for details.\n\nYour key will be tested with one real request before continuing. If it fails, you'll see exactly why.",
         "data": {
           "api_key": "APILayer API key"
         }
       },
       "reauth_confirm": {
         "title": "Reconnect to Checkiday",
-        "description": "Your Checkiday API key stopped working. Enter a new key from your APILayer dashboard (apilayer.com/marketplace/checkiday-api#pricing). It will be tested once before continuing.",
+        "description": "Your Checkiday API key stopped working. Enter a new key from your APILayer dashboard ({pricing_link}). It will be tested once before continuing.",
         "data": {
           "api_key": "APILayer API key"
         }
@@ -31,21 +31,23 @@
     "step": {
       "init": {
         "title": "Checkiday options",
-        "description": "Choose when to fetch the day's National Day(s), and whether to also fetch tomorrow's.",
+        "description": "Choose when to fetch today's National Day(s) each day.",
         "data": {
-          "update_time": "Daily update time (local time)",
-          "include_tomorrow": "Also fetch tomorrow's National Day(s)"
+          "update_time": "Daily update time (local time)"
+        },
+        "data_description": {
+          "update_time": "Defaults to a time that accounts for the gap between your timezone and the API's fixed Central Time - see the README for why."
         }
       }
     }
   },
   "entity": {
     "sensor": {
-      "today_national_day": {
+      "national_day": {
         "name": "Today"
       },
-      "tomorrow_national_day": {
-        "name": "Tomorrow"
+      "all_names": {
+        "name": "All names"
       },
       "api_requests_remaining": {
         "name": "API requests remaining"

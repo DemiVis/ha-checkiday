@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 import hashlib
 import logging
 from typing import Any
@@ -16,6 +17,7 @@ from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+import homeassistant.util.dt as dt_util
 import voluptuous as vol
 
 from .api import (
@@ -24,13 +26,7 @@ from .api import (
     CheckidayAuthError,
     CheckidayRateLimitError,
 )
-from .const import (
-    CONF_INCLUDE_TOMORROW,
-    CONF_UPDATE_TIME,
-    DEFAULT_INCLUDE_TOMORROW,
-    DEFAULT_UPDATE_TIME,
-    DOMAIN,
-)
+from .const import API_TIMEZONE, CONF_UPDATE_TIME, DEFAULT_UPDATE_TIME, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,19 +38,64 @@ _API_KEY_SCHEMA = vol.Schema(
     }
 )
 
+# hassfest forbids literal URLs inside strings.json/translations values, so
+# the link text lives here and is injected via description_placeholders at
+# runtime instead (strings.json references it as `{pricing_link}`).
+_PRICING_URL = "https://apilayer.com/marketplace/checkiday-api#pricing"
+_PRICING_LINK_MARKDOWN = f"[apilayer.com/marketplace/checkiday-api#pricing]({_PRICING_URL})"
+
 
 async def _async_test_api_key(hass: HomeAssistant, api_key: str) -> None:
     """Validate an API key with one real request. Raises on any failure."""
     session = async_get_clientsession(hass)
     client = CheckidayApiClient(session, api_key)
-    # No `date` -> the API defaults to "today" for us; we just need to know
-    # the key works, we don't need the actual data here.
-    await client.async_get_events(timezone=hass.config.time_zone)
+    await client.async_get_today()
 
 
 def _key_unique_id(api_key: str) -> str:
     """Derive a stable, non-reversible unique id from the API key."""
     return hashlib.sha256(api_key.encode()).hexdigest()
+
+
+def _compute_default_update_time(hass: HomeAssistant) -> str:
+    """Suggest an update time that runs after the API's day has rolled over.
+
+    The Checkiday API always resolves "today" using its own fixed timezone
+    (America/Chicago) - the Free plan can't override this per-request (see
+    api.py's module docstring). To line up with the user's *local* calendar
+    day as often as possible, default to fetching at the local clock time
+    that corresponds to America/Chicago's midnight, rather than always
+    defaulting to the user's own midnight.
+
+    For most US timezones this is a 0-2 hour offset from local midnight
+    (e.g. Pacific/Mountain: 00:00, Eastern: ~01:00). For timezones far from
+    Central Time - especially outside the Americas - this can suggest a
+    late-day update time, since there may be no local time at which both
+    calendars agree on "today". See the README's timezone limitations
+    section. Users can always override this in the integration's options.
+    """
+    hass_tz_name = hass.config.time_zone
+    if not hass_tz_name:
+        return DEFAULT_UPDATE_TIME
+
+    local_tz = dt_util.get_time_zone(hass_tz_name)
+    api_tz = dt_util.get_time_zone(API_TIMEZONE)
+    if local_tz is None or api_tz is None:
+        return DEFAULT_UPDATE_TIME
+
+    now = dt_util.utcnow()
+    local_offset = local_tz.utcoffset(now)
+    api_offset = api_tz.utcoffset(now)
+    if local_offset is None or api_offset is None:
+        return DEFAULT_UPDATE_TIME
+
+    delay = local_offset - api_offset
+    if delay < timedelta(0):
+        delay = timedelta(0)
+
+    total_minutes = int(delay.total_seconds() // 60)
+    hours, minutes = divmod(total_minutes, 60)
+    return f"{hours:02d}:{minutes:02d}:00"
 
 
 async def _async_validate_and_build_errors(
@@ -110,8 +151,7 @@ class CheckidayConfigFlow(ConfigFlow, domain=DOMAIN):
                     title="Checkiday National Day",
                     data={CONF_API_KEY: api_key},
                     options={
-                        CONF_UPDATE_TIME: DEFAULT_UPDATE_TIME,
-                        CONF_INCLUDE_TOMORROW: DEFAULT_INCLUDE_TOMORROW,
+                        CONF_UPDATE_TIME: _compute_default_update_time(self.hass),
                     },
                 )
 
@@ -119,7 +159,7 @@ class CheckidayConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=_API_KEY_SCHEMA,
             errors=errors,
-            description_placeholders=placeholders,
+            description_placeholders={"pricing_link": _PRICING_LINK_MARKDOWN, **placeholders},
         )
 
     async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
@@ -149,7 +189,7 @@ class CheckidayConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="reauth_confirm",
             data_schema=_API_KEY_SCHEMA,
             errors=errors,
-            description_placeholders=placeholders,
+            description_placeholders={"pricing_link": _PRICING_LINK_MARKDOWN, **placeholders},
         )
 
     @staticmethod
@@ -160,7 +200,7 @@ class CheckidayConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class CheckidayOptionsFlowHandler(OptionsFlow):
-    """Handle Checkiday options: daily update time and tomorrow toggle."""
+    """Handle Checkiday options: the daily update time."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manage the options."""
@@ -168,16 +208,14 @@ class CheckidayOptionsFlowHandler(OptionsFlow):
             return self.async_create_entry(data=user_input)
 
         current = self.config_entry.options
+        default_update_time = current.get(CONF_UPDATE_TIME) or _compute_default_update_time(
+            self.hass
+        )
         schema = vol.Schema(
             {
                 vol.Required(
-                    CONF_UPDATE_TIME,
-                    default=current.get(CONF_UPDATE_TIME, DEFAULT_UPDATE_TIME),
+                    CONF_UPDATE_TIME, default=default_update_time
                 ): selector.TimeSelector(),
-                vol.Required(
-                    CONF_INCLUDE_TOMORROW,
-                    default=current.get(CONF_INCLUDE_TOMORROW, DEFAULT_INCLUDE_TOMORROW),
-                ): selector.BooleanSelector(),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

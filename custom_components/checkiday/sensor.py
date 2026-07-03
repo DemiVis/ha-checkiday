@@ -14,7 +14,6 @@ from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .api import CheckidayEventsResult
 from .const import ATTRIBUTION, DATA_COORDINATOR, DOMAIN, MANUFACTURER
 from .coordinator import CheckidayData, CheckidayUpdateCoordinator
 
@@ -29,8 +28,8 @@ async def async_setup_entry(
 
     async_add_entities(
         [
-            CheckidayDaySensor(coordinator, entry, day="today"),
-            CheckidayDaySensor(coordinator, entry, day="tomorrow"),
+            CheckidayNationalDaySensor(coordinator, entry),
+            CheckidayAllNamesSensor(coordinator, entry),
             CheckidayRateLimitSensor(coordinator, entry),
         ]
     )
@@ -48,55 +47,44 @@ def _device_info(entry: ConfigEntry) -> DeviceInfo:
     )
 
 
-class CheckidayDaySensor(CoordinatorEntity[CheckidayUpdateCoordinator], SensorEntity):
-    """Exposes the National Day(s) for either 'today' or 'tomorrow'.
+class CheckidayNationalDaySensor(CoordinatorEntity[CheckidayUpdateCoordinator], SensorEntity):
+    """Exposes today's National Day(s).
 
-    The sensor's state is the name of the first/primary event for that day.
+    The sensor's state is the name of the first/primary event for today.
     Because most dates have multiple observances, the full list is exposed
     via the `events` attribute (each with `id`, `name`, `url`) so dashboards,
     templates, or ESPHome can iterate through all of them.
+
+    Only "today" is available - the Checkiday API's `date` parameter
+    (needed for "tomorrow") requires a paid APILayer plan. See api.py.
     """
 
     _attr_has_entity_name = True
+    _attr_translation_key = "national_day"
     _attr_attribution = ATTRIBUTION
     _attr_icon = "mdi:calendar-star"
 
-    def __init__(
-        self, coordinator: CheckidayUpdateCoordinator, entry: ConfigEntry, day: str
-    ) -> None:
-        """Initialize the sensor for the given day ("today" or "tomorrow")."""
+    def __init__(self, coordinator: CheckidayUpdateCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
         super().__init__(coordinator)
-        self._day = day
-        self._attr_unique_id = f"{entry.entry_id}_{day}"
-        self._attr_translation_key = f"{day}_national_day"
+        self._attr_unique_id = f"{entry.entry_id}_national_day"
         self._attr_device_info = _device_info(entry)
-
-    @property
-    def _result(self) -> CheckidayEventsResult | None:
-        data: CheckidayData | None = self.coordinator.data
-        if data is None:
-            return None
-        return data.today if self._day == "today" else data.tomorrow
-
-    @property
-    def available(self) -> bool:
-        """Unavailable if we have no data yet, or "tomorrow" is disabled."""
-        return super().available and self._result is not None
 
     @property
     def native_value(self) -> str | None:
         """Return the first event's name as the primary state."""
-        result = self._result
-        if not result or not result.events:
+        data: CheckidayData | None = self.coordinator.data
+        if data is None or not data.today.events:
             return None
-        return result.events[0].name
+        return data.today.events[0].name
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the full list of events plus supporting metadata."""
-        result = self._result
-        if not result:
+        data: CheckidayData | None = self.coordinator.data
+        if data is None:
             return {}
+        result = data.today
         events = [asdict(e) for e in result.events]
         return {
             "date": result.date,
@@ -107,6 +95,52 @@ class CheckidayDaySensor(CoordinatorEntity[CheckidayUpdateCoordinator], SensorEn
             "multiday_starting": [asdict(e) for e in result.multiday_starting],
             "multiday_ongoing": [asdict(e) for e in result.multiday_ongoing],
         }
+
+
+class CheckidayAllNamesSensor(CoordinatorEntity[CheckidayUpdateCoordinator], SensorEntity):
+    """Optional convenience sensor: all of today's event names in one string.
+
+    Disabled by default. A long comma-joined string is a clunky sensor
+    state, and the primary `national_day` sensor's `events`/`all_names`
+    attributes already carry this data for templates and dashboards - this
+    entity only exists for anyone who'd rather enable a ready-made entity
+    than write a template sensor themselves. Not mentioned as a
+    recommendation anywhere; it's just here if someone wants it.
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "all_names"
+    _attr_icon = "mdi:calendar-text"
+    _attr_attribution = ATTRIBUTION
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: CheckidayUpdateCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_all_names"
+        self._attr_device_info = _device_info(entry)
+
+    @property
+    def native_value(self) -> str | None:
+        """Return today's event names joined into one string."""
+        data: CheckidayData | None = self.coordinator.data
+        if data is None or not data.today.events:
+            return None
+        joined = ", ".join(e.name for e in data.today.events)
+        # Sensor states are capped at 255 chars; truncate defensively so a
+        # heavy day doesn't get silently dropped/warned about by the
+        # recorder.
+        if len(joined) > 255:
+            joined = joined[:252] + "..."
+        return joined
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the event count, for context if the state got truncated."""
+        data: CheckidayData | None = self.coordinator.data
+        if data is None:
+            return {}
+        return {"event_count": len(data.today.events)}
 
 
 class CheckidayRateLimitSensor(CoordinatorEntity[CheckidayUpdateCoordinator], SensorEntity):
@@ -128,7 +162,7 @@ class CheckidayRateLimitSensor(CoordinatorEntity[CheckidayUpdateCoordinator], Se
     def native_value(self) -> int | None:
         """Return the remaining monthly request count, if known."""
         data: CheckidayData | None = self.coordinator.data
-        if data is None or data.today is None:
+        if data is None:
             return None
         return data.today.rate_limit_remaining
 
@@ -136,14 +170,12 @@ class CheckidayRateLimitSensor(CoordinatorEntity[CheckidayUpdateCoordinator], Se
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the monthly limit and a usage note."""
         data: CheckidayData | None = self.coordinator.data
-        if data is None or data.today is None:
+        if data is None:
             return {}
         return {
             "monthly_limit": data.today.rate_limit_limit,
             "note": (
-                "This integration uses up to 2 requests/day (today + "
-                "tomorrow), roughly 60% of the free tier's 100/month "
-                "allowance. Disable 'Also fetch tomorrow's National Day(s)' "
-                "in the integration's options to roughly halve usage."
+                "This integration uses 1 request/day, roughly 30% of the "
+                "free tier's 100/month allowance."
             ),
         }

@@ -25,12 +25,5 @@ async def async_get_config_entry_diagnostics(
     return {
         "entry_data": async_redact_data(dict(entry.data), TO_REDACT),
         "entry_options": dict(entry.options),
-        "coordinator_data": (
-            {
-                "today": asdict(data.today) if data.today else None,
-                "tomorrow": asdict(data.tomorrow) if data.tomorrow else None,
-            }
-            if data
-            else None
-        ),
+        "coordinator_data": ({"today": asdict(data.today)} if data else None),
     }
