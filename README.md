@@ -159,6 +159,11 @@ APILayer sells paid plans with a higher monthly quota — see the
   calendar/star mark created for this project — it is **not** Checkiday's
   logo or brand imagery, specifically to avoid implying this is an official
   or endorsed integration.
+- This code was written in tandum both manually and with the help of Claude Code. 
+  The author is a software engineer and attempts to use LLMs to assist in coding
+  as responsibly as possible, and performs manual review of all edited lines. But 
+  some people don't want to use any code known to be made with AI so this notice
+  serves as a transparent notice to those folks. 
 
 ## Contributing
 
