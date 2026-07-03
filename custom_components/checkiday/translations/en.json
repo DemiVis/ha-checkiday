@@ -1,0 +1,55 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Checkiday",
+        "description": "This integration fetches the current \"National Day\" (and, optionally, tomorrow's) from the Checkiday API via APILayer.\n\n**Get a free API key:**\n1. Go to apilayer.com/marketplace/checkiday-api#pricing and create a free APILayer account (no credit card required).\n2. Subscribe to the **Free Plan** (100 requests/month, free for life).\n3. Copy your API key from the APILayer dashboard and paste it below.\n\nThis integration uses at most 2 requests/day (today + tomorrow) — about 60% of your free monthly allowance. You can disable the \"tomorrow\" lookup afterwards to roughly halve that usage.\n\nYour key will be tested with one real request before continuing. If it fails, you'll see exactly why.",
+        "data": {
+          "api_key": "APILayer API key"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnect to Checkiday",
+        "description": "Your Checkiday API key stopped working. Enter a new key from your APILayer dashboard (apilayer.com/marketplace/checkiday-api#pricing). It will be tested once before continuing.",
+        "data": {
+          "api_key": "APILayer API key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "That API key was rejected. Details: {error_detail}",
+      "rate_limited": "The Checkiday API refused the request (quota or rate limit). Details: {error_detail}",
+      "cannot_connect": "Couldn't reach the Checkiday API. Details: {error_detail}",
+      "unknown": "Unexpected error while testing the API key. Check the Home Assistant log for details."
+    },
+    "abort": {
+      "already_configured": "This API key is already configured.",
+      "reauth_successful": "Re-authentication was successful."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Checkiday options",
+        "description": "Choose when to fetch the day's National Day(s), and whether to also fetch tomorrow's.",
+        "data": {
+          "update_time": "Daily update time (local time)",
+          "include_tomorrow": "Also fetch tomorrow's National Day(s)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "today_national_day": {
+        "name": "Today"
+      },
+      "tomorrow_national_day": {
+        "name": "Tomorrow"
+      },
+      "api_requests_remaining": {
+        "name": "API requests remaining"
+      }
+    }
+  }
+}

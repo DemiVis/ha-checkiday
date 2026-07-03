@@ -1,0 +1,17 @@
+name: "Feature request"
+description: "Suggest an idea for the Checkiday National Day integration"
+labels: ["enhancement"]
+body:
+  - type: "textarea"
+    id: "feature"
+    attributes:
+      label: "What would you like to see?"
+    validations:
+      required: true
+  - type: "textarea"
+    id: "context"
+    attributes:
+      label: "Additional context"
+      description: "Why this would help, e.g. a dashboard or ESPHome display use case."
+    validations:
+      required: false
