@@ -77,8 +77,8 @@ without losing your other settings.
 
 | Entity | Description |
 | --- | --- |
-| `sensor.checkiday_today` | State = the first National Day for today. Attributes include the full `events` list (`id`, `name`, `url` for every event today), `event_count`, `all_names`, and any multi-day events starting/ongoing. |
-| `sensor.checkiday_api_requests_remaining` | Diagnostic sensor showing your remaining monthly API requests (from the API's rate-limit headers). |
+| `sensor.checkiday_national_day_today` | State = the first National Day for today. Attributes include the full `events` list (`id`, `name`, `url` for every event today), `event_count`, `all_names`, and any multi-day events starting/ongoing. |
+| `sensor.checkiday_national_day_api_requests_remaining` | Diagnostic sensor showing your remaining monthly API requests (from the API's rate-limit headers). |
 
 There's also an `all_names` sensor (all of today's event names joined into
 one string) that's disabled by default — it's there under **Settings →
@@ -102,7 +102,7 @@ title: Today's National Days
 
 For a rotating/cycling dashboard card or an ESPHome display, consider a
 `template` sensor or an automation that steps through
-`state_attr('sensor.checkiday_today', 'events')` on a timer and publishes
+`state_attr('sensor.checkiday_national_day_today', 'events')` on a timer and publishes
 the current index's name to a helper `input_text`, which is easy for
 ESPHome's `homeassistant.text_sensor` to consume (ESPHome can read entity
 *state*, but not arbitrary attributes, directly).
@@ -168,7 +168,7 @@ APILayer sells paid plans with a higher monthly quota — see the
   calendar/star mark created for this project — it is **not** Checkiday's
   logo or brand imagery, specifically to avoid implying this is an official
   or endorsed integration.
-- This code was written in tandum both manually and with the help of Claude Code. 
+- This code was written in tandem both manually and with the help of Claude Code. 
   The author is a software engineer and attempts to use LLMs to assist in coding
   as responsibly as possible, and performs manual review of all edited lines. But 
   some people don't want to use any code known to be made with AI so this notice
