@@ -162,6 +162,12 @@ restart or manual reload. If you need more than the free tier offers,
 APILayer sells paid plans with a higher monthly quota — see the
 [pricing page](https://apilayer.com/marketplace/checkiday-api#pricing).
 
+If a scheduled fetch fails (network blip, API hiccup), the integration
+retries every 30 minutes, up to 3 times — so a fully failed day costs at
+most 4 requests. If all retries fail, a warning appears under **Settings →
+Repairs** explaining that the sensors will stay unavailable until the next
+successful refresh; it clears automatically once data refreshes again.
+
 ## Disclaimer & fair use
 
 - This integration is provided **as-is**, under the MIT License (see

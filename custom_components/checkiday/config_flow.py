@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import timedelta
 import hashlib
 import logging
@@ -11,7 +12,7 @@ from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
     ConfigFlowResult,
-    OptionsFlow,
+    OptionsFlowWithReload,
 )
 from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant, callback
@@ -131,10 +132,6 @@ class CheckidayConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    def __init__(self) -> None:
-        """Initialize the flow."""
-        self._reauth_entry: ConfigEntry | None = None
-
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the initial setup step: collect and test an API key."""
         errors: dict[str, str] = {}
@@ -162,9 +159,8 @@ class CheckidayConfigFlow(ConfigFlow, domain=DOMAIN):
             description_placeholders={"pricing_link": _PRICING_LINK_MARKDOWN, **placeholders},
         )
 
-    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
         """Handle a reauth flow, triggered when the stored API key fails."""
-        self._reauth_entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
@@ -179,10 +175,10 @@ class CheckidayConfigFlow(ConfigFlow, domain=DOMAIN):
             errors, placeholders = await _async_validate_and_build_errors(self.hass, api_key)
 
             if not errors:
-                assert self._reauth_entry is not None
+                reauth_entry = self._get_reauth_entry()
                 return self.async_update_reload_and_abort(
-                    self._reauth_entry,
-                    data={**self._reauth_entry.data, CONF_API_KEY: api_key},
+                    reauth_entry,
+                    data_updates={CONF_API_KEY: api_key},
                 )
 
         return self.async_show_form(
@@ -199,8 +195,13 @@ class CheckidayConfigFlow(ConfigFlow, domain=DOMAIN):
         return CheckidayOptionsFlowHandler()
 
 
-class CheckidayOptionsFlowHandler(OptionsFlow):
-    """Handle Checkiday options: the daily update time."""
+class CheckidayOptionsFlowHandler(OptionsFlowWithReload):
+    """Handle Checkiday options: the daily update time.
+
+    OptionsFlowWithReload automatically reloads the config entry after the
+    options are saved, which re-registers the daily schedule with the new
+    update time — no manual update listener needed.
+    """
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manage the options."""
