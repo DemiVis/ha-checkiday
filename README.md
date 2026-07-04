@@ -77,8 +77,8 @@ without losing your other settings.
 
 | Entity | Description |
 | --- | --- |
-| `sensor.checkiday_today` | State = the first National Day for today. Attributes include the full `events` list (`id`, `name`, `url` for every event today), `event_count`, `all_names`, and any multi-day events starting/ongoing. |
-| `sensor.checkiday_api_requests_remaining` | Diagnostic sensor showing your remaining monthly API requests (from the API's rate-limit headers). |
+| `sensor.checkiday_national_day_today` | State = the first National Day for today. Attributes include the full `events` list (`id`, `name`, `url` for every event today), `event_count`, `all_names`, and any multi-day events starting/ongoing. |
+| `sensor.checkiday_national_day_api_requests_remaining` | Diagnostic sensor showing your remaining monthly API requests (from the API's rate-limit headers). |
 
 There's also an `all_names` sensor (all of today's event names joined into
 one string) that's disabled by default — it's there under **Settings →
@@ -102,7 +102,7 @@ title: Today's National Days
 
 For a rotating/cycling dashboard card or an ESPHome display, consider a
 `template` sensor or an automation that steps through
-`state_attr('sensor.checkiday_today', 'events')` on a timer and publishes
+`state_attr('sensor.checkiday_national_day_today', 'events')` on a timer and publishes
 the current index's name to a helper `input_text`, which is easy for
 ESPHome's `homeassistant.text_sensor` to consume (ESPHome can read entity
 *state*, but not arbitrary attributes, directly).
@@ -145,6 +145,14 @@ update time chosen, there will always be a window around your local
 midnight where the "Today" sensor is technically still showing the
 *previous* Central-Time day.
 
+> **Daylight saving time:** the default update time is computed once, at
+> setup, using the UTC offsets in effect at that moment. When DST starts or
+> ends (in your timezone or in US Central Time), that stored time can end up
+> off by an hour until you re-save it under **Configure**. Worst case the
+> daily fetch runs an hour before the API's day has rolled over, showing the
+> previous day's events until the next fetch. This is not handled
+> automatically — it's a once-or-twice-a-year, one-hour edge case.
+
 ## API usage
 
 Checkiday's free APILayer plan allows **100 requests/month**. This
@@ -153,6 +161,12 @@ the free allowance — leaving headroom for the occasional Home Assistant
 restart or manual reload. If you need more than the free tier offers,
 APILayer sells paid plans with a higher monthly quota — see the
 [pricing page](https://apilayer.com/marketplace/checkiday-api#pricing).
+
+If a scheduled fetch fails (network blip, API hiccup), the integration
+retries every 30 minutes, up to 3 times — so a fully failed day costs at
+most 4 requests. If all retries fail, a warning appears under **Settings →
+Repairs** explaining that the sensors will stay unavailable until the next
+successful refresh; it clears automatically once data refreshes again.
 
 ## Disclaimer & fair use
 
@@ -168,7 +182,7 @@ APILayer sells paid plans with a higher monthly quota — see the
   calendar/star mark created for this project — it is **not** Checkiday's
   logo or brand imagery, specifically to avoid implying this is an official
   or endorsed integration.
-- This code was written in tandum both manually and with the help of Claude Code. 
+- This code was written in tandem both manually and with the help of Claude Code. 
   The author is a software engineer and attempts to use LLMs to assist in coding
   as responsibly as possible, and performs manual review of all edited lines. But 
   some people don't want to use any code known to be made with AI so this notice

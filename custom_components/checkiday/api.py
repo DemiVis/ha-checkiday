@@ -29,7 +29,7 @@ from typing import Any
 
 import aiohttp
 
-from .const import API_BASE_URL, API_TIMEOUT
+from .const import API_BASE_URL, API_TIMEOUT, MAX_RESPONSE_BYTES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -106,11 +106,20 @@ class CheckidayApiClient:
         try:
             async with asyncio.timeout(API_TIMEOUT):
                 response = await self._session.get(url, params=params, headers=headers)
-                text = await response.text()
+                # Read at most MAX_RESPONSE_BYTES (+1 to detect overflow)
+                # instead of response.text(), as defense-in-depth against a
+                # broken or compromised upstream sending an enormous body.
+                raw = await response.content.read(MAX_RESPONSE_BYTES + 1)
         except TimeoutError as err:
             raise CheckidayConnectionError("Timed out contacting the Checkiday API") from err
         except aiohttp.ClientError as err:
             raise CheckidayConnectionError(f"Error contacting the Checkiday API: {err}") from err
+
+        if len(raw) > MAX_RESPONSE_BYTES:
+            raise CheckidayApiError(
+                f"Response exceeded the {MAX_RESPONSE_BYTES // 1024} kB size limit"
+            )
+        text = raw.decode("utf-8", errors="replace")
 
         try:
             payload: dict[str, Any] = json.loads(text) if text else {}

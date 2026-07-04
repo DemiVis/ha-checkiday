@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from homeassistant.const import Platform
 
 DOMAIN = "checkiday"
@@ -12,6 +14,17 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 API_BASE_URL = "https://api.apilayer.com/checkiday/"
 API_TIMEOUT = 10  # seconds
+
+# Defensive cap on API response size. A normal day's payload is a few kB
+# even on event-heavy dates, we have plenty of headroom; anything larger
+# indicates a broken (or compromised) upstream and is rejected outright.
+MAX_RESPONSE_BYTES = 48 * 1024
+
+# If a scheduled daily refresh fails, retry this often, at most this many
+# times, before giving up until the next scheduled refresh (and raising a
+# Repairs warning). Worst case this costs 3 extra API requests on a bad day.
+RETRY_DELAY = timedelta(minutes=30)
+MAX_RETRIES = 3
 
 # The Checkiday API always calculates "today" in this fixed timezone. Per
 # APILayer's own API reference (marketplace.apilayer.com/checkiday-api),
@@ -33,11 +46,6 @@ CONF_UPDATE_TIME = "update_time"
 # (see config_flow.async_compute_default_update_time). Prefer that smart
 # default wherever possible; this exists purely as a last resort.
 DEFAULT_UPDATE_TIME = "00:00:00"
-
-# -- hass.data storage keys --------------------------------------------------
-
-DATA_COORDINATOR = "coordinator"
-DATA_UNSUB_SCHEDULE = "unsub_schedule"
 
 # -- Misc ---------------------------------------------------------------------
 

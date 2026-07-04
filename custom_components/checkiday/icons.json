@@ -1,0 +1,15 @@
+{
+  "entity": {
+    "sensor": {
+      "national_day": {
+        "default": "mdi:calendar-star"
+      },
+      "all_names": {
+        "default": "mdi:calendar-text"
+      },
+      "api_requests_remaining": {
+        "default": "mdi:api"
+      }
+    }
+  }
+}

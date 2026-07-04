@@ -53,5 +53,11 @@
         "name": "API requests remaining"
       }
     }
+  },
+  "issues": {
+    "stale_data": {
+      "title": "Checkiday data could not be refreshed",
+      "description": "Refreshing today's National Day data from the Checkiday API failed, and all {retries} retries (30 minutes apart) failed too. The Checkiday sensors will stay unavailable until the next successful refresh — normally the next scheduled update at {update_time}, or reload the integration to retry now. If this keeps happening, check that your API key is still valid and that you have monthly requests left (see the \"API requests remaining\" sensor). This warning clears automatically after the next successful refresh."
+    }
   }
 }

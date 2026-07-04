@@ -15,6 +15,10 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# Typed alias so platforms can annotate the entry and get a typed
+# `entry.runtime_data` (the coordinator) for free.
+type CheckidayConfigEntry = ConfigEntry[CheckidayUpdateCoordinator]
+
 
 @dataclass
 class CheckidayData:
@@ -42,7 +46,7 @@ class CheckidayUpdateCoordinator(DataUpdateCoordinator[CheckidayData]):
     def __init__(
         self,
         hass: HomeAssistant,
-        config_entry: ConfigEntry,
+        config_entry: CheckidayConfigEntry,
         client: CheckidayApiClient,
     ) -> None:
         """Initialize the coordinator."""

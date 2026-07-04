@@ -7,24 +7,25 @@ import logging
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceEntryType
-from homeassistant.helpers.entity import DeviceInfo, EntityCategory
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import ATTRIBUTION, DATA_COORDINATOR, DOMAIN, MANUFACTURER
-from .coordinator import CheckidayData, CheckidayUpdateCoordinator
+from .const import ATTRIBUTION, DOMAIN, MANUFACTURER
+from .coordinator import CheckidayConfigEntry, CheckidayData, CheckidayUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: CheckidayConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Checkiday sensors from a config entry."""
-    coordinator: CheckidayUpdateCoordinator = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
+    coordinator = entry.runtime_data
 
     async_add_entities(
         [
@@ -35,7 +36,7 @@ async def async_setup_entry(
     )
 
 
-def _device_info(entry: ConfigEntry) -> DeviceInfo:
+def _device_info(entry: CheckidayConfigEntry) -> DeviceInfo:
     """Shared device info so all of this entry's entities group together."""
     return DeviceInfo(
         identifiers={(DOMAIN, entry.entry_id)},
@@ -62,9 +63,10 @@ class CheckidayNationalDaySensor(CoordinatorEntity[CheckidayUpdateCoordinator], 
     _attr_has_entity_name = True
     _attr_translation_key = "national_day"
     _attr_attribution = ATTRIBUTION
-    _attr_icon = "mdi:calendar-star"
 
-    def __init__(self, coordinator: CheckidayUpdateCoordinator, entry: ConfigEntry) -> None:
+    def __init__(
+        self, coordinator: CheckidayUpdateCoordinator, entry: CheckidayConfigEntry
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_national_day"
@@ -110,11 +112,12 @@ class CheckidayAllNamesSensor(CoordinatorEntity[CheckidayUpdateCoordinator], Sen
 
     _attr_has_entity_name = True
     _attr_translation_key = "all_names"
-    _attr_icon = "mdi:calendar-text"
     _attr_attribution = ATTRIBUTION
     _attr_entity_registry_enabled_default = False
 
-    def __init__(self, coordinator: CheckidayUpdateCoordinator, entry: ConfigEntry) -> None:
+    def __init__(
+        self, coordinator: CheckidayUpdateCoordinator, entry: CheckidayConfigEntry
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_all_names"
@@ -148,11 +151,12 @@ class CheckidayRateLimitSensor(CoordinatorEntity[CheckidayUpdateCoordinator], Se
 
     _attr_has_entity_name = True
     _attr_translation_key = "api_requests_remaining"
-    _attr_icon = "mdi:api"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_native_unit_of_measurement = "requests"
 
-    def __init__(self, coordinator: CheckidayUpdateCoordinator, entry: ConfigEntry) -> None:
+    def __init__(
+        self, coordinator: CheckidayUpdateCoordinator, entry: CheckidayConfigEntry
+    ) -> None:
         """Initialize the diagnostic sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_api_requests_remaining"
