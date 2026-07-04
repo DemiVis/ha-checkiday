@@ -145,6 +145,14 @@ update time chosen, there will always be a window around your local
 midnight where the "Today" sensor is technically still showing the
 *previous* Central-Time day.
 
+> **Daylight saving time:** the default update time is computed once, at
+> setup, using the UTC offsets in effect at that moment. When DST starts or
+> ends (in your timezone or in US Central Time), that stored time can end up
+> off by an hour until you re-save it under **Configure**. Worst case the
+> daily fetch runs an hour before the API's day has rolled over, showing the
+> previous day's events until the next fetch. This is not handled
+> automatically — it's a once-or-twice-a-year, one-hour edge case.
+
 ## API usage
 
 Checkiday's free APILayer plan allows **100 requests/month**. This
