@@ -1,6 +1,6 @@
 # Checkiday National Day for Home Assistant
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A Home Assistant custom integration that surfaces today's
@@ -37,11 +37,9 @@ APILayer.
 
 ### Via HACS (recommended)
 
-1. In Home Assistant, go to **HACS → Integrations → ⋮ → Custom repositories**.
-2. Add this repository's URL, category **Integration**.
-   (Once accepted into the default HACS store, this step won't be necessary.)
-3. Find **Checkiday National Day** in HACS and install it.
-4. Restart Home Assistant.
+1. In Home Assistant, open **HACS** and search for **Checkiday National Day**.
+2. Click **Download**.
+3. Restart Home Assistant.
 
 ### Manual install
 
