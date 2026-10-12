@@ -28,6 +28,7 @@ from .const import (
     CONF_UPDATE_TIME,
     DEFAULT_UPDATE_TIME,
     DOMAIN,
+    MAX_ERROR_CHARS,
     MAX_RETRIES,
     PLATFORMS,
     RETRY_DELAY,
@@ -85,10 +86,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: CheckidayConfigEntry) ->
             ir.async_delete_issue(hass, DOMAIN, issue_id)
             return
 
+        last_error = str(coordinator.last_exception or "unknown error")[:MAX_ERROR_CHARS]
+
         if retry_count < MAX_RETRIES:
             retry_count += 1
             _LOGGER.warning(
-                "Checkiday refresh failed; retrying in %s (attempt %d of %d)",
+                "Checkiday refresh failed (%s); retrying in %s (attempt %d of %d)",
+                last_error,
                 RETRY_DELAY,
                 retry_count,
                 MAX_RETRIES,
@@ -99,9 +103,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: CheckidayConfigEntry) ->
         retry_count = 0
         _LOGGER.error(
             "Checkiday refresh failed after %d retries; giving up until the "
-            "next scheduled update at %s",
+            "next scheduled update at %s. Last error: %s",
             MAX_RETRIES,
             update_time,
+            last_error,
         )
         ir.async_create_issue(
             hass,
@@ -113,6 +118,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: CheckidayConfigEntry) ->
             translation_placeholders={
                 "retries": str(MAX_RETRIES),
                 "update_time": update_time,
+                "last_error": last_error,
             },
         )
 
