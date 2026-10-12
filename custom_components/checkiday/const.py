@@ -13,7 +13,7 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 # -- Checkiday / APILayer API ------------------------------------------------
 
 API_BASE_URL = "https://api.apilayer.com/checkiday/"
-API_TIMEOUT = 10  # seconds
+API_TIMEOUT = 30  # seconds
 
 # Defensive cap on API response size. A normal day's payload is a few kB
 # even on event-heavy dates, we have plenty of headroom; anything larger
@@ -25,6 +25,10 @@ MAX_RESPONSE_BYTES = 48 * 1024
 # Repairs warning). Worst case this costs 3 extra API requests on a bad day.
 RETRY_DELAY = timedelta(minutes=30)
 MAX_RETRIES = 3
+
+# Cap on the error text shown in logs and the Repairs warning, so a verbose
+# upstream error page can't flood either.
+MAX_ERROR_CHARS = 200
 
 # The Checkiday API always calculates "today" in this fixed timezone. Per
 # APILayer's own API reference (marketplace.apilayer.com/checkiday-api),

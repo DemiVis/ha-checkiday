@@ -164,9 +164,11 @@ APILayer sells paid plans with a higher monthly quota — see the
 
 If a scheduled fetch fails (network blip, API hiccup), the integration
 retries every 30 minutes, up to 3 times — so a fully failed day costs at
-most 4 requests. If all retries fail, a warning appears under **Settings →
-Repairs** explaining that the sensors will stay unavailable until the next
-successful refresh; it clears automatically once data refreshes again.
+most 4 requests. Each request times out after 30 seconds. If all retries
+fail, a warning appears under **Settings → Repairs** explaining that the
+sensors will stay unavailable until the next successful refresh, and showing
+the last error returned (also written to the Home Assistant log). It clears
+automatically once data refreshes again.
 
 ## Disclaimer & fair use
 
