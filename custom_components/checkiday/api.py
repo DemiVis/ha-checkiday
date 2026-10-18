@@ -33,6 +33,8 @@ from .const import API_BASE_URL, API_TIMEOUT, MAX_RESPONSE_BYTES
 
 _LOGGER = logging.getLogger(__name__)
 
+_READ_CHUNK_BYTES = 8192
+
 
 class CheckidayApiError(Exception):
     """Base error for any problem talking to the Checkiday API."""
@@ -106,10 +108,18 @@ class CheckidayApiClient:
         try:
             async with asyncio.timeout(API_TIMEOUT):
                 response = await self._session.get(url, params=params, headers=headers)
-                # Read at most MAX_RESPONSE_BYTES (+1 to detect overflow)
-                # instead of response.text(), as defense-in-depth against a
-                # broken or compromised upstream sending an enormous body.
-                raw = await response.content.read(MAX_RESPONSE_BYTES + 1)
+                # Read the whole body, but stop once it exceeds
+                # MAX_RESPONSE_BYTES (instead of response.text()), as
+                # defense-in-depth against a broken or compromised upstream
+                # sending an enormous body. Note: StreamReader.read(n) is NOT
+                # safe here - it returns whatever has arrived so far (up to n
+                # bytes), so a body that arrives in several chunks comes back
+                # truncated and fails to parse. iter_chunked reads to EOF.
+                raw = bytearray()
+                async for chunk in response.content.iter_chunked(_READ_CHUNK_BYTES):
+                    raw += chunk
+                    if len(raw) > MAX_RESPONSE_BYTES:
+                        break
         except TimeoutError as err:
             raise CheckidayConnectionError("Timed out contacting the Checkiday API") from err
         except aiohttp.ClientError as err:
@@ -119,7 +129,7 @@ class CheckidayApiClient:
             raise CheckidayApiError(
                 f"Response exceeded the {MAX_RESPONSE_BYTES // 1024} kB size limit"
             )
-        text = raw.decode("utf-8", errors="replace")
+        text = bytes(raw).decode("utf-8", errors="replace")
 
         try:
             payload: dict[str, Any] = json.loads(text) if text else {}
