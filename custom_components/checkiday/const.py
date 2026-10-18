@@ -27,8 +27,9 @@ RETRY_DELAY = timedelta(minutes=30)
 MAX_RETRIES = 3
 
 # Cap on the error text shown in logs and the Repairs warning, so a verbose
-# upstream error page can't flood either.
-MAX_ERROR_CHARS = 200
+# upstream error page can't flood either. Sized to fit the diagnostics for an
+# unparseable response (see api._describe_unreadable_response) in full.
+MAX_ERROR_CHARS = 400
 
 # The Checkiday API always calculates "today" in this fixed timezone. Per
 # APILayer's own API reference (marketplace.apilayer.com/checkiday-api),

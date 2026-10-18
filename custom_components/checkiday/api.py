@@ -33,6 +33,9 @@ from .const import API_BASE_URL, API_TIMEOUT, MAX_RESPONSE_BYTES
 
 _LOGGER = logging.getLogger(__name__)
 
+_READ_CHUNK_BYTES = 8192
+_SNIPPET_CHARS = 120  # head/tail of an unparseable body shown in errors
+
 
 class CheckidayApiError(Exception):
     """Base error for any problem talking to the Checkiday API."""
@@ -106,10 +109,18 @@ class CheckidayApiClient:
         try:
             async with asyncio.timeout(API_TIMEOUT):
                 response = await self._session.get(url, params=params, headers=headers)
-                # Read at most MAX_RESPONSE_BYTES (+1 to detect overflow)
-                # instead of response.text(), as defense-in-depth against a
-                # broken or compromised upstream sending an enormous body.
-                raw = await response.content.read(MAX_RESPONSE_BYTES + 1)
+                # Read the whole body, but stop once it exceeds
+                # MAX_RESPONSE_BYTES (instead of response.text()), as
+                # defense-in-depth against a broken or compromised upstream
+                # sending an enormous body. Note: StreamReader.read(n) is NOT
+                # safe here - it returns whatever has arrived so far (up to n
+                # bytes), so a body that arrives in several chunks comes back
+                # truncated and fails to parse. iter_chunked reads to EOF.
+                raw = bytearray()
+                async for chunk in response.content.iter_chunked(_READ_CHUNK_BYTES):
+                    raw += chunk
+                    if len(raw) > MAX_RESPONSE_BYTES:
+                        break
         except TimeoutError as err:
             raise CheckidayConnectionError("Timed out contacting the Checkiday API") from err
         except aiohttp.ClientError as err:
@@ -119,13 +130,13 @@ class CheckidayApiClient:
             raise CheckidayApiError(
                 f"Response exceeded the {MAX_RESPONSE_BYTES // 1024} kB size limit"
             )
-        text = raw.decode("utf-8", errors="replace")
+        text = bytes(raw).decode("utf-8", errors="replace")
 
         try:
             payload: dict[str, Any] = json.loads(text) if text else {}
         except ValueError as err:
             raise CheckidayApiError(
-                f"Received an unreadable response (HTTP {response.status}): {text[:500]}"
+                _describe_unreadable_response(response, len(raw), text, err)
             ) from err
 
         if response.status in (401, 403):
@@ -156,6 +167,36 @@ class CheckidayApiClient:
             rate_limit_remaining=remaining,
             rate_limit_limit=limit,
         )
+
+
+def _describe_unreadable_response(
+    response: aiohttp.ClientResponse, bytes_read: int, text: str, err: ValueError
+) -> str:
+    """Describe a response that could not be parsed as JSON, for diagnosis.
+
+    Includes the numbers needed to tell a truncated body (parse error near the
+    end of the data, fewer bytes read than Content-Length) from a malformed
+    one (parse error in the middle), plus the start and end of the body.
+    Diagnostics come first so any later truncation of the message trims only
+    the body snippet. Whitespace is collapsed so it stays on one line.
+    """
+    parts = [f"HTTP {response.status}", f"{bytes_read} bytes read"]
+    for header in ("Content-Length", "Content-Encoding", "Transfer-Encoding"):
+        value = response.headers.get(header)
+        if value:
+            parts.append(f"{header} {value}")
+    pos = getattr(err, "pos", None)
+    reason = getattr(err, "msg", str(err))
+    parts.append(
+        f"JSON error at char {pos} ({reason})" if pos is not None else f"JSON error ({reason})"
+    )
+
+    compact = " ".join(text.split())
+    if len(compact) <= 2 * _SNIPPET_CHARS:
+        snippet = f"Body: {compact}"
+    else:
+        snippet = f"Starts: {compact[:_SNIPPET_CHARS]} ... Ends: {compact[-_SNIPPET_CHARS:]}"
+    return f"Received an unreadable response ({', '.join(parts)}). {snippet}"
 
 
 def _extract_error_message(payload: dict[str, Any], raw_text: str) -> str:
